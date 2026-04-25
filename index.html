@@ -671,11 +671,11 @@
       se.textContent = fmtUSD(sumEq);
 
       const sd = document.getElementById('sum-daily-pnl');
-      sd.textContent = fmt(sumDaily);
+      sd.textContent = fmtUSD(sumDaily);
       sd.className = 'summary-value ' + cls(sumDaily);
 
       const st = document.getElementById('sum-total-pnl');
-      st.textContent = fmt(sumTotal);
+      st.textContent = fmtUSD(sumTotal);
       st.className = 'summary-value ' + cls(sumTotal);
 
       document.getElementById('sum-positions').textContent = sumPos + '개';
