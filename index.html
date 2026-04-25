@@ -340,10 +340,6 @@
 
     /* ── DD Row ── */
     .dd-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1px;
-      background: var(--border);
       border-top: 1px solid var(--border);
     }
 
@@ -364,6 +360,11 @@
     .dd-value {
       font-size: 15px;
       font-weight: 700;
+    }
+
+    .dd-sep {
+      color: var(--border);
+      margin: 0 8px;
     }
 
     /* ── Loading skeleton ── */
@@ -531,7 +532,7 @@
         <div class="metric-sub" id="cum-pct-${bot.id}">—</div>
       </div>
       <div class="metric">
-        <div class="metric-label">일평균 / 연환산</div>
+        <div class="metric-label">일평균 수익률</div>
         <div class="metric-value" id="daily-avg-${bot.id}">—</div>
         <div class="metric-sub" id="annual-${bot.id}">—</div>
       </div>
@@ -543,12 +544,12 @@
     </div>
     <div class="dd-row">
       <div class="dd-item">
-        <div class="dd-label">MDD</div>
-        <div class="dd-value" id="mdd-${bot.id}">—</div>
-      </div>
-      <div class="dd-item">
-        <div class="dd-label">Current DD</div>
-        <div class="dd-value" id="cur-dd-${bot.id}">—</div>
+        <div class="dd-label">MDD / Current DD</div>
+        <div class="dd-value">
+          <span id="mdd-${bot.id}">—</span>
+          <span class="dd-sep">|</span>
+          <span id="cur-dd-${bot.id}">—</span>
+        </div>
       </div>
     </div>
     <div class="chart-wrap">
@@ -627,7 +628,7 @@
       document.getElementById(`total-pnl-${bot.id}`).innerHTML =
         `<span class="${cls(d.total_pnl)}">${fmtUSD(d.total_pnl)}</span>`;
       document.getElementById(`cum-pct-${bot.id}`).innerHTML =
-        `<span class="${cls(d.cum_pct)}">${fmt(d.cum_pct)}%</span> 누적`;
+        `누적 <span class="${cls(d.cum_pct)}">${fmt(d.cum_pct)}%</span>`;
 
       // daily avg / annual
       document.getElementById(`daily-avg-${bot.id}`).innerHTML =
