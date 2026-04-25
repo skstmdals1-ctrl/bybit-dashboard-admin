@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TensorAI — Admin Dashboard</title>
+  <meta name="description" content="Bybit TensorAI 통합 관리자 대시보드 — 전체 봇 현황 한눈에 보기" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:       #0b0e1a;
+      --surface:  #111827;
+      --card:     #161d2f;
+      --border:   #1e2d45;
+      --accent:   #3b82f6;
+      --green:    #10b981;
+      --red:      #ef4444;
+      --yellow:   #f59e0b;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --radius:   12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--accent); }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    #last-update { font-size: 12px; color: var(--muted); }
+    #refresh-btn {
+      padding: 7px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(59,130,246,0.1);
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    #refresh-btn:hover { background: rgba(59,130,246,0.2); border-color: var(--accent); }
+
+    /* ── Summary Bar ── */
+    .summary-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .summary-item {
+      background: var(--surface);
+      padding: 14px 24px;
+      text-align: center;
+    }
+    .summary-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+    .summary-value { font-size: 22px; font-weight: 700; }
+
+    /* ── Main Grid ── */
+    main { padding: 24px 28px; }
+    .page-title {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .page-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 14px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .bot-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    /* ── Bot Card ── */
+    .bot-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .bot-card:hover {
+      border-color: rgba(59,130,246,0.4);
+      box-shadow: 0 4px 24px rgba(59,130,246,0.08);
+    }
+    .bot-card-header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    .bot-name { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .bot-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: none;
+    }
+    .bot-dot.live {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .bot-status-badge {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .badge-live { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .badge-stopped { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .badge-loading { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid var(--border); }
+
+    /* ── Metrics Grid ── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .metric {
+      background: var(--card);
+      padding: 12px 14px;
+    }
+    .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
+    .metric-value { font-size: 17px; font-weight: 700; line-height: 1.2; }
+    .metric-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .metric-sub span { font-weight: 500; }
+
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .neu { color: var(--text); }
+
+    /* ── Equity banner ── */
+    .equity-banner {
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.015);
+    }
+    .equity-main { }
+    .equity-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; }
+    .equity-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+    .equity-right { text-align: right; }
+
+    /* ── Chart ── */
+    .chart-wrap {
+      padding: 12px 14px;
+      height: 120px;
+      position: relative;
+    }
+    .chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+    /* ── DD Row ── */
+    .dd-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+    }
+    .dd-item {
+      background: var(--card);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dd-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .dd-value { font-size: 15px; font-weight: 700; }
+
+    /* ── Loading skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.05) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+      height: 1em;
+      width: 80%;
+      display: inline-block;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ── Responsive ── */
+    @media (max-width: 1100px) { .bot-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) {
+      .summary-bar { grid-template-columns: repeat(2,1fr); }
+      .metrics-grid { grid-template-columns: repeat(2,1fr); }
+      header { padding: 12px 16px; }
+      main { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div class="logo-text">Bybit <span>TensorAI</span> — Admin</div>
+  </div>
+  <div class="header-right">
+    <span id="last-update">업데이트 중...</span>
+    <button id="refresh-btn" onclick="fetchAll()">↻ 새로고침</button>
+  </div>
+</header>
+
+<!-- Summary Bar -->
+<div class="summary-bar">
+  <div class="summary-item">
+    <div class="summary-label">전체 EQUITY</div>
+    <div class="summary-value" id="sum-equity">—</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">오늘 실현 PnL (합계)</div>
+    <div class="summary-value" id="sum-daily-pnl">—</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">누적 PnL (합계)</div>
+    <div class="summary-value" id="sum-total-pnl">—</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">전체 포지션 수</div>
+    <div class="summary-value" id="sum-positions">—</div>
+  </div>
+</div>
+
+<main>
+  <div class="page-title">봇별 핵심 지표 — 자동 갱신 60초</div>
+  <div class="bot-grid" id="bot-grid">
+    <!-- Cards injected by JS -->
+  </div>
+</main>
+
+<script>
+const BOTS = [
+  {
+    id:    'main',
+    name:  '메인봇',
+    color: '#3b82f6',
+    url:   'https://raw.githubusercontent.com/skstmdals1-ctrl/bybit-dashboard/main/data.json',
+  },
+  {
+    id:    'client1',
+    name:  'Client 1',
+    color: '#10b981',
+    url:   'https://raw.githubusercontent.com/skstmdals1-ctrl/bybit-dashboard-client1/main/data.json',
+  },
+  {
+    id:    'client2',
+    name:  'Client 2',
+    color: '#f59e0b',
+    url:   'https://raw.githubusercontent.com/skstmdals1-ctrl/bybit-dashboard-client2/main/data.json',
+  },
+  {
+    id:    'client3',
+    name:  'Client 3',
+    color: '#a855f7',
+    url:   'https://raw.githubusercontent.com/skstmdals1-ctrl/bybit-dashboard-client3/main/data.json',
+  },
+];
+
+const charts = {};
+let botData = {};
+
+// ── Helpers ──────────────────────────────────────────────────────────
+function fmt(v, digits=2) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  const n = parseFloat(v);
+  return (n >= 0 ? '+' : '') + n.toFixed(digits);
+}
+function fmtUSD(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return '$' + parseFloat(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function cls(v) {
+  const n = parseFloat(v);
+  if (isNaN(n) || n === 0) return 'neu';
+  return n > 0 ? 'pos' : 'neg';
+}
+
+// ── Card Template ─────────────────────────────────────────────────────
+function createCard(bot) {
+  const div = document.createElement('div');
+  div.className = 'bot-card';
+  div.id = `card-${bot.id}`;
+  div.innerHTML = `
+    <div class="bot-card-header">
+      <div class="bot-name">
+        <div class="bot-dot" id="dot-${bot.id}"></div>
+        ${bot.name}
+      </div>
+      <span class="bot-status-badge badge-loading" id="badge-${bot.id}">로딩중</span>
+    </div>
+    <div class="equity-banner">
+      <div class="equity-main">
+        <div class="equity-label">TOTAL EQUITY</div>
+        <div class="equity-value" id="equity-${bot.id}"><span class="skeleton"></span></div>
+      </div>
+      <div class="equity-right">
+        <div class="metric-label">오늘 실현 PnL</div>
+        <div class="metric-value" id="daily-${bot.id}"><span class="skeleton" style="width:60px"></span></div>
+      </div>
+    </div>
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="metric-label">누적 PnL</div>
+        <div class="metric-value" id="total-pnl-${bot.id}">—</div>
+        <div class="metric-sub" id="cum-pct-${bot.id}">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">일평균 / 연환산</div>
+        <div class="metric-value" id="daily-avg-${bot.id}">—</div>
+        <div class="metric-sub" id="annual-${bot.id}">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">포지션 / 시드사용률</div>
+        <div class="metric-value" id="pos-count-${bot.id}">—</div>
+        <div class="metric-sub" id="seed-pct-${bot.id}">—</div>
+      </div>
+    </div>
+    <div class="dd-row">
+      <div class="dd-item">
+        <div class="dd-label">MDD</div>
+        <div class="dd-value" id="mdd-${bot.id}">—</div>
+      </div>
+      <div class="dd-item">
+        <div class="dd-label">Current DD</div>
+        <div class="dd-value" id="cur-dd-${bot.id}">—</div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart-${bot.id}"></canvas>
+    </div>
+  `;
+  return div;
+}
+
+// ── Chart Init ────────────────────────────────────────────────────────
+function initChart(bot) {
+  const ctx = document.getElementById(`chart-${bot.id}`).getContext('2d');
+  charts[bot.id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        data: [],
+        borderColor: bot.color,
+        borderWidth: 2,
+        fill: true,
+        backgroundColor: (ctx2) => {
+          const g = ctx2.chart.ctx.createLinearGradient(0, 0, 0, 100);
+          g.addColorStop(0, bot.color + '33');
+          g.addColorStop(1, bot.color + '00');
+          return g;
+        },
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: (ctx2) => ' $' + ctx2.parsed.y.toFixed(2) }
+      }},
+      scales: {
+        x: { display: false },
+        y: {
+          display: true,
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#64748b',
+            font: { size: 9 },
+            maxTicksLimit: 4,
+            callback: (v) => '$' + v.toFixed(0)
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Update Card ───────────────────────────────────────────────────────
+function updateCard(bot, d) {
+  const live = d.status === 'running';
+  document.getElementById(`dot-${bot.id}`).className = 'bot-dot' + (live ? ' live' : '');
+  const badge = document.getElementById(`badge-${bot.id}`);
+  badge.textContent = live ? 'LIVE' : 'STOPPED';
+  badge.className = 'bot-status-badge ' + (live ? 'badge-live' : 'badge-stopped');
+
+  // equity
+  const eq = document.getElementById(`equity-${bot.id}`);
+  eq.textContent = fmtUSD(d.equity);
+
+  // daily pnl
+  const dp = document.getElementById(`daily-${bot.id}`);
+  dp.innerHTML = `<span class="${cls(d.daily_pnl)}">${fmt(d.daily_pnl)}</span>`;
+
+  // total pnl
+  document.getElementById(`total-pnl-${bot.id}`).innerHTML =
+    `<span class="${cls(d.total_pnl)}">${fmtUSD(d.total_pnl)}</span>`;
+  document.getElementById(`cum-pct-${bot.id}`).innerHTML =
+    `<span class="${cls(d.cum_pct)}">${fmt(d.cum_pct)}%</span> 누적`;
+
+  // daily avg / annual
+  document.getElementById(`daily-avg-${bot.id}`).innerHTML =
+    `<span class="${cls(d.daily_avg_pct)}">${fmt(d.daily_avg_pct, 3)}%</span>`;
+  document.getElementById(`annual-${bot.id}`).innerHTML =
+    `연환산 <span class="${cls(d.annual_pct)}">${fmt(d.annual_pct)}%</span>`;
+
+  // positions / seed
+  const totalPos = (d.long_count || 0) + (d.short_count || 0);
+  document.getElementById(`pos-count-${bot.id}`).innerHTML =
+    `${totalPos}개 <small style="color:var(--muted);font-size:12px">L${d.long_count||0}/S${d.short_count||0}</small>`;
+  document.getElementById(`seed-pct-${bot.id}`).innerHTML =
+    `시드 <span style="color:${d.seed_used_pct>80?'var(--red)':d.seed_used_pct>50?'var(--yellow)':'var(--green)'};">${(d.seed_used_pct||0).toFixed(1)}%</span> 사용`;
+
+  // MDD / Current DD
+  document.getElementById(`mdd-${bot.id}`).innerHTML =
+    `<span class="neg">${fmt(d.mdd)}%</span>`;
+  document.getElementById(`cur-dd-${bot.id}`).innerHTML =
+    `<span class="${cls(d.current_dd)}">${fmt(d.current_dd)}%</span>`;
+
+  // Chart
+  const hist = d.equity_hist || [];
+  if (hist.length > 0 && charts[bot.id]) {
+    charts[bot.id].data.labels = hist.map(h => h.t);
+    charts[bot.id].data.datasets[0].data = hist.map(h => h.v);
+    charts[bot.id].update('none');
+  }
+}
+
+// ── Summary Bar ───────────────────────────────────────────────────────
+function updateSummary() {
+  const vals = Object.values(botData);
+  if (!vals.length) return;
+
+  const sumEq     = vals.reduce((a,d) => a + (d.equity||0), 0);
+  const sumDaily  = vals.reduce((a,d) => a + (d.daily_pnl||0), 0);
+  const sumTotal  = vals.reduce((a,d) => a + (d.total_pnl||0), 0);
+  const sumPos    = vals.reduce((a,d) => a + (d.long_count||0) + (d.short_count||0), 0);
+
+  const se = document.getElementById('sum-equity');
+  se.textContent = fmtUSD(sumEq);
+
+  const sd = document.getElementById('sum-daily-pnl');
+  sd.textContent = fmt(sumDaily);
+  sd.className = 'summary-value ' + cls(sumDaily);
+
+  const st = document.getElementById('sum-total-pnl');
+  st.textContent = fmt(sumTotal) + ' USD';
+  st.className = 'summary-value ' + cls(sumTotal);
+
+  document.getElementById('sum-positions').textContent = sumPos + '개';
+}
+
+// ── Fetch All ─────────────────────────────────────────────────────────
+async function fetchAll() {
+  document.getElementById('last-update').textContent = '갱신 중...';
+  const results = await Promise.allSettled(
+    BOTS.map(bot =>
+      fetch(bot.url + '?_=' + Date.now(), {cache: 'no-store'})
+        .then(r => r.json())
+        .then(d => ({ bot, d }))
+    )
+  );
+  results.forEach(res => {
+    if (res.status === 'fulfilled') {
+      const { bot, d } = res.value;
+      botData[bot.id] = d;
+      updateCard(bot, d);
+    }
+  });
+  updateSummary();
+  const now = new Date();
+  document.getElementById('last-update').textContent =
+    '최근 업데이트: ' + now.toLocaleTimeString('ko-KR');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+(function init() {
+  const grid = document.getElementById('bot-grid');
+  BOTS.forEach(bot => {
+    const card = createCard(bot);
+    grid.appendChild(card);
+    initChart(bot);
+  });
+  fetchAll();
+  setInterval(fetchAll, 60000);
+})();
+</script>
+</body>
+</html>
