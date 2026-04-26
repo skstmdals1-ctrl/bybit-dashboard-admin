@@ -42,10 +42,6 @@
     header {
       background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
       border-bottom: 1px solid var(--border);
-      padding: 16px 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -307,8 +303,6 @@
       background: rgba(255, 255, 255, 0.015);
     }
 
-    .equity-main {}
-
     .equity-label {
       font-size: 10px;
       color: var(--muted);
@@ -388,6 +382,19 @@
       }
     }
 
+    /* ── Refresh Time Bar ── */
+    .refresh-bar {
+      height: 2px;
+      background: var(--border);
+      overflow: hidden;
+    }
+
+    .refresh-progress {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #8b5cf6);
+      transition: width 0.5s linear;
+    }
+
     /* ── Responsive ── */
     @media (max-width: 1100px) {
       .bot-grid {
@@ -416,13 +423,18 @@
 <body>
 
   <header>
-    <div class="logo">
-      <div class="logo-icon">🤖</div>
-      <div class="logo-text">TensorAI</span> Admin</div>
+    <div style="padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;">
+      <div class="logo">
+        <div class="logo-icon">🤖</div>
+        <div class="logo-text">TensorAI</span> Admin</div>
+      </div>
+      <div class="header-right">
+        <span id="last-update">업데이트 중...</span>
+        <button id="refresh-btn" onclick="fetchAll()">↻</button>
+      </div>
     </div>
-    <div class="header-right">
-      <span id="last-update">업데이트 중...</span>
-      <button id="refresh-btn" onclick="fetchAll()">↻</button>
+    <div class="refresh-bar">
+      <div class="refresh-progress" id="refreshBar" style="width:0%"></div>
     </div>
   </header>
 
@@ -701,6 +713,31 @@
         '↻ ' + now.toLocaleTimeString('ko-KR');
     }
 
+    // ── Timer Bar ─────────────────────────────────────────────────────────
+    const REFRESH_SEC = 60;
+    let tickInterval = null;
+
+    function startTick() {
+      if (tickInterval) clearInterval(tickInterval);
+      const bar = document.getElementById('refreshBar');
+      tickInterval = setInterval(() => {
+        const now = new Date();
+        const elapsed = now.getSeconds() + now.getMilliseconds() / 1000;
+        const pct = (elapsed / REFRESH_SEC) * 100;
+        bar.style.width = pct + '%';
+      }, 500);
+    }
+
+    function scheduleNextFetch() {
+      const now = new Date();
+      const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+      setTimeout(() => {
+        fetchAll();
+        // 이후 매분 정각 반복
+        setInterval(fetchAll, 60000);
+      }, msUntilNextMinute);
+    }
+
     // ── Init ───────────────────────────────────────────────────────────────
     (function init() {
       const grid = document.getElementById('bot-grid');
@@ -710,7 +747,8 @@
         initChart(bot);
       });
       fetchAll();
-      setInterval(fetchAll, 60000);
+      startTick();
+      scheduleNextFetch();
     })();
   </script>
 </body>
