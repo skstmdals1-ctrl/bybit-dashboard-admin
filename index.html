@@ -459,7 +459,7 @@
   </div>
 
   <main>
-    <div class="page-title">봇별 핵심 지표 — 자동 갱신 60초</div>
+    <div class="page-title">봇별 핵심 지표 — 자동 갱신 10초</div>
     <div class="bot-grid" id="bot-grid">
       <!-- Cards injected by JS -->
     </div>
@@ -720,28 +720,25 @@
     }
 
     // ── Timer Bar ─────────────────────────────────────────────────────────
-    const REFRESH_SEC = 60;
+    const REFRESH_SEC = 10;
     let tickInterval = null;
 
     function startTick() {
       if (tickInterval) clearInterval(tickInterval);
       const bar = document.getElementById('refreshBar');
       tickInterval = setInterval(() => {
-        const now = new Date();
-        const elapsed = now.getSeconds() + now.getMilliseconds() / 1000;
-        const pct = (elapsed / REFRESH_SEC) * 100;
+        const now = Date.now();
+        const pct = (now % 10000) / 10000 * 100;
         bar.style.width = pct + '%';
-      }, 500);
+      }, 200);
     }
 
     function scheduleNextFetch() {
-      const now = new Date();
-      const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+      const msUntilNext = 10000 - (Date.now() % 10000);
       setTimeout(() => {
         fetchAll();
-        // 이후 매분 정각 반복
-        setInterval(fetchAll, 60000);
-      }, msUntilNextMinute);
+        setInterval(fetchAll, 10000);
+      }, msUntilNext);
     }
 
     // ── Init ───────────────────────────────────────────────────────────────
