@@ -728,16 +728,16 @@
       const bar = document.getElementById('refreshBar');
       tickInterval = setInterval(() => {
         const now = Date.now();
-        const pct = (now % 10000) / 10000 * 100;
+        const pct = (now % 30000) / 30000 * 100;
         bar.style.width = pct + '%';
       }, 200);
     }
 
     function scheduleNextFetch() {
-      const msUntilNext = 10000 - (Date.now() % 10000);
+      const msUntilNext = 30000 - (Date.now() % 30000);
       setTimeout(() => {
         fetchAll();
-        setInterval(fetchAll, 10000);
+        setInterval(fetchAll, 30000);
       }, msUntilNext);
     }
 
