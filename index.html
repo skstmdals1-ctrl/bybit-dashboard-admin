@@ -720,7 +720,7 @@
     }
 
     // ── Timer Bar ─────────────────────────────────────────────────────────
-    const REFRESH_SEC = 10;
+    const REFRESH_SEC = 60;
     let tickInterval = null;
 
     function startTick() {
@@ -728,16 +728,16 @@
       const bar = document.getElementById('refreshBar');
       tickInterval = setInterval(() => {
         const now = Date.now();
-        const pct = (now % 30000) / 30000 * 100;
+        const pct = (now % 60000) / 60000 * 100;
         bar.style.width = pct + '%';
       }, 200);
     }
 
     function scheduleNextFetch() {
-      const msUntilNext = 30000 - (Date.now() % 30000);
+      const msUntilNext = 60000 - (Date.now() % 60000);
       setTimeout(() => {
         fetchAll();
-        setInterval(fetchAll, 30000);
+        setInterval(fetchAll, 60000);
       }, msUntilNext);
     }
 
